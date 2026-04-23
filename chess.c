@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <raygui.h>
-#include <raylib.h>
+#include "raylib.h"
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 640
@@ -30,4 +27,47 @@ void DrawBoard(){
             );
         }
     }
+}
+
+void DrawLabels(){
+    for (int i = 0; i < CELL_SIZE; i++){
+        //alphabet collumn
+        char collabel[2] = {'a' + i, '\0'};
+        DrawText(collabel,
+                i * CELL_SIZE + 70,
+                SCREEN_HEIGHT - 18,
+                14,
+                (i % 2 == 0) ? LIGHT_COLOR : DARK_COLOR);
+        
+        //number row
+        char rowLabel[2] = { '8' - i, '\0' };
+        DrawText(rowLabel,
+                 4,
+                 i * CELL_SIZE + 4,
+                 14,
+                 (i % 2 == 0) ? DARK_COLOR : LIGHT_COLOR);
+
+    }
+}
+
+int main(void) {
+    // 1. Khởi tạo cửa sổ
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess - Part 1");
+    SetTargetFPS(60);
+
+    // 2. Vòng lặp game chính
+    while (!WindowShouldClose()) {
+        // --- UPDATE (phần này sẽ thêm dần) ---
+
+        // --- DRAW ---
+        BeginDrawing();
+            ClearBackground(BLACK);
+            DrawBoard();
+            DrawLabels();
+        EndDrawing();
+    }
+
+    // 3. Dọn dẹp
+    CloseWindow();
+    return 0;
 }
