@@ -1,6 +1,6 @@
 #include "raylib.h"
 #include <string.h>
-
+#include <stdlib.h>
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 640
@@ -30,6 +30,22 @@ int Board[BOARD_SIZE][BOARD_SIZE] = {
     { WHITE_ROOK, WHITE_KNIGHT, WHITE_BISHOP, WHITE_QUEEN, WHITE_KING, WHITE_BISHOP, WHITE_KNIGHT, WHITE_ROOK },
 };
 
+const char* PIECE_SYMBOLS[13] = {
+    "♚",  // -6: Black King    → index 0
+    "♛",  // -5: Black Queen   → index 1
+    "♜",  // -4: Black Rook    → index 2
+    "♝",  // -3: Black Bishop  → index 3
+    "♞",  // -2: Black Knight  → index 4
+    "♟",  // -1: Black Pawn    → index 5
+    " ",  //  0: Empty         → index 6
+    "♙",  //  1: White Pawn    → index 7
+    "♘",  //  2: White Knight  → index 8
+    "♗",  //  3: White Bishop  → index 9
+    "♖",  //  4: White Rook    → index 10
+    "♕",  //  5: White Queen   → index 11
+    "♔",  //  6: White King    → index 12
+};
+
 void DrawBoard(){
     for (int row = 0; row < BOARD_SIZE; row++){
         for (int col = 0; col < BOARD_SIZE; col++){
@@ -51,7 +67,7 @@ void DrawBoard(){
 }
 
 void DrawLabels(){
-    for (int i = 0; i < CELL_SIZE; i++){
+    for (int i = 0; i < BOARD_SIZE; i++){
         //alphabet collumn
         char collabel[2] = {'a' + i, '\0'};
         DrawText(collabel,
@@ -71,24 +87,87 @@ void DrawLabels(){
     }
 }
 
+void DrawPieces(Font font){
+    for (int row = 0; row < BOARD_SIZE; row++){
+        for (int col = 0; col < BOARD_SIZE; col++){
+            int piece = Board[row][col];
+            if (piece == EMPTY) continue;
+            
+            const char* symbol = PIECE_SYMBOLS[piece + 6];
+
+            Color pieceColor;
+            if (piece > 0){
+                pieceColor = WHITE;
+            } else {
+                pieceColor = BLACK;
+            }
+
+            Color shadowColor;
+            if (piece > 0){
+                shadowColor = BLACK;
+            } else {
+                shadowColor = DARKGRAY;
+            }
+
+            //position of piece
+            float fontSize = CELL_SIZE * 0.75f;
+            Vector2 textSize = MeasureTextEx(font, symbol, fontSize, 0);
+            float x = col * CELL_SIZE + (CELL_SIZE - textSize.x) / 2.0f;
+            float y = row * CELL_SIZE + (CELL_SIZE - textSize.y) / 2.0f;
+
+            //draw shadow
+            DrawTextEx(font, symbol, (Vector2){ x + 2, y + 2 }, fontSize, 0, shadowColor);
+            // Vẽ quân cờ
+            DrawTextEx(font, symbol, (Vector2){ x, y }, fontSize, 0, pieceColor);
+
+
+        };  
+    };
+};
+
+
 int main(void) {
-    // 1. Khởi tạo cửa sổ
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess - Part 1");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess - Part 2");
     SetTargetFPS(60);
 
-    // 2. Vòng lặp game chính
-    while (!WindowShouldClose()) {
-        // --- UPDATE (phần này sẽ thêm dần) ---
+    // 1. Prepare the codepoints we want the font to support
+    // Standard ASCII (95 chars) + Chess Pieces (12 chars)
+    int codepointCount = 95 + 12;
+    int *codepoints = (int *)malloc(codepointCount * sizeof(int));
 
-        // --- DRAW ---
+    // Load standard text characters (Space ' ' up to '~') for your row/col labels
+    for (int i = 0; i < 95; i++) {
+        codepoints[i] = 32 + i;
+    }
+
+    // Load the Unicode hex values for the chess pieces (U+2654 to U+265F)
+    int chessStart = 0x2654;
+    for (int i = 0; i < 12; i++) {
+        codepoints[95 + i] = chessStart + i;
+    }
+
+    // 2. Load a LOCAL font file using the custom codepoints. 
+    Font font = LoadFontEx("C:/Windows/Fonts/seguisym.ttf", 80, codepoints, codepointCount);
+    
+    // Clean up our temporary codepoint array
+    free(codepoints);
+
+    // Fallback warning if the file is missing
+    if (font.glyphCount < 100) {
+    TraceLog(LOG_WARNING, "Font missing glyphs!");
+    font = GetFontDefault();
+    }
+
+    while (!WindowShouldClose()) {
         BeginDrawing();
             ClearBackground(BLACK);
             DrawBoard();
             DrawLabels();
+            DrawPieces(font);
         EndDrawing();
     }
 
-    // 3. Dọn dẹp
+    UnloadFont(font);
     CloseWindow();
     return 0;
 }
