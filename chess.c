@@ -1,4 +1,6 @@
 #include "raylib.h"
+#include <string.h>
+
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 640
@@ -8,6 +10,25 @@
 //color of board
 #define LIGHT_COLOR CLITERAL(RAYWHITE)
 #define DARK_COLOR CLITERAL(DARKGRAY)
+
+//chess pieces
+typedef enum {
+    EMPTY = 0,
+    WHITE_PAWN = 1, WHITE_KNIGHT = 2, WHITE_BISHOP = 3, WHITE_ROOK = 4, WHITE_QUEEN = 5, WHITE_KING = 6,
+    BLACK_PAWN = -1, BLACK_KNIGHT = -2, BLACK_BISHOP = -3, BLACK_ROOK = -4, BLACK_QUEEN = -5, BLACK_KING = -6,
+} Piece;
+
+// starter board
+int Board[BOARD_SIZE][BOARD_SIZE] = {
+    { BLACK_ROOK, BLACK_KNIGHT, BLACK_BISHOP, BLACK_QUEEN, BLACK_KING, BLACK_BISHOP, BLACK_KNIGHT, BLACK_ROOK },
+    { BLACK_PAWN, BLACK_PAWN,   BLACK_PAWN,   BLACK_PAWN,  BLACK_PAWN, BLACK_PAWN,   BLACK_PAWN,   BLACK_PAWN },
+    {      0,      0,        0,       0,       0,       0,        0,       0    },
+    {      0,      0,        0,       0,       0,       0,        0,       0    },
+    {      0,      0,        0,       0,       0,       0,        0,       0    },
+    {      0,      0,        0,       0,       0,       0,        0,       0    },
+    { WHITE_PAWN, WHITE_PAWN,   WHITE_PAWN,   WHITE_PAWN,  WHITE_PAWN, WHITE_PAWN,   WHITE_PAWN,   WHITE_PAWN },
+    { WHITE_ROOK, WHITE_KNIGHT, WHITE_BISHOP, WHITE_QUEEN, WHITE_KING, WHITE_BISHOP, WHITE_KNIGHT, WHITE_ROOK },
+};
 
 void DrawBoard(){
     for (int row = 0; row < BOARD_SIZE; row++){
