@@ -11,7 +11,24 @@
 #define LIGHT_COLOR CLITERAL(RAYWHITE)
 #define DARK_COLOR CLITERAL(DARKGRAY)
 
+//game state
+typedef struct {
+    int selectedRow;
+    int selectedCol;
+    int currentTurn;
+    bool gameOver;
+} GameState;
+
+//gamestate in the begin
+GameState game = {
+    .selectedRow = -1,
+    .selectedCol = -1,
+    .currentTurn = 1,
+    .gameOver = false,
+};
+
 //chess pieces
+// black is negative and white is positive for the more understand
 typedef enum {
     EMPTY = 0,
     WHITE_PAWN = 1, WHITE_KNIGHT = 2, WHITE_BISHOP = 3, WHITE_ROOK = 4, WHITE_QUEEN = 5, WHITE_KING = 6,
@@ -29,6 +46,64 @@ int Board[BOARD_SIZE][BOARD_SIZE] = {
     { WHITE_PAWN, WHITE_PAWN,   WHITE_PAWN,   WHITE_PAWN,  WHITE_PAWN, WHITE_PAWN,   WHITE_PAWN,   WHITE_PAWN },
     { WHITE_ROOK, WHITE_KNIGHT, WHITE_BISHOP, WHITE_QUEEN, WHITE_KING, WHITE_BISHOP, WHITE_KNIGHT, WHITE_ROOK },
 };
+
+//highlight draw when choose
+void DrawHightlights(){
+    if (game.selectedRow != -1){
+        DrawRectangle(
+            game.selectedCol * CELL_SIZE,
+            game.selectedRow * CELL_SIZE,
+            CELL_SIZE, CELL_SIZE,
+            CLITERAL(Color){ 100, 200, 100, 120 }  //
+        );
+    };
+};
+
+void HandleMouseInput(void) {
+    if (!IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) return;
+    if (game.gameOver) return;
+
+    // Chuyển pixel → cell
+    Vector2 mouse = GetMousePosition();
+    int clickCol = (int)(mouse.x / CELL_SIZE);
+    int clickRow = (int)(mouse.y / CELL_SIZE);
+
+    // Kiểm tra trong board
+    if (clickCol < 0 || clickCol >= BOARD_SIZE ||
+        clickRow < 0 || clickRow >= BOARD_SIZE) return;
+
+    int clickedPiece = Board[clickRow][clickCol];
+
+    if (game.selectedRow == -1) {
+        // --- CHƯA CHỌN: thử chọn quân ---
+        // Chỉ chọn được quân của lượt hiện tại
+        if ((game.currentTurn == 1  && clickedPiece > 0) ||
+            (game.currentTurn == -1 && clickedPiece < 0)) {
+            game.selectedRow = clickRow;
+            game.selectedCol = clickCol;
+        }
+    } else {
+        if (clickRow == game.selectedRow && clickCol == game.selectedCol) {
+            // Click lại ô đang chọn → bỏ chọn
+            game.selectedRow = -1;
+            game.selectedCol = -1;
+        } else if ((game.currentTurn == 1  && clickedPiece > 0) ||
+                   (game.currentTurn == -1 && clickedPiece < 0)) {
+            // Click quân cùng màu → chuyển sang chọn quân đó
+            game.selectedRow = clickRow;
+            game.selectedCol = clickCol;
+        } else {
+            // Click ô trống hoặc quân địch → thực hiện di chuyển 
+            Board[clickRow][clickCol] = Board[game.selectedRow][game.selectedCol];
+            Board[game.selectedRow][game.selectedCol] = EMPTY;
+
+            // Đổi lượt
+            game.currentTurn = -game.currentTurn;
+            game.selectedRow = -1;
+            game.selectedCol = -1;
+        }
+    }
+}
 
 const char* PIECE_SYMBOLS[13] = {
     "♚",  // -6: Black King    → index 0
@@ -127,7 +202,7 @@ void DrawPieces(Font font){
 
 
 int main(void) {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess - Part 2");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess");
     SetTargetFPS(60);
 
     // 1. Prepare the codepoints we want the font to support

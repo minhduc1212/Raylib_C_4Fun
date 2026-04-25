@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess in C + Raylib — Learning Roadmap</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0d0f;
+    --surface:   #141417;
+    --card:      #1a1a1f;
+    --border:    #2a2a32;
+    --amber:     #f0a500;
+    --amber-dim: #8a5e00;
+    --cream:     #f5efe0;
+    --muted:     #6b6b7a;
+    --green:     #3dba72;
+    --red:       #e05252;
+    --blue:      #5b8fff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── CHESS GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-conic-gradient(#ffffff04 0% 25%, transparent 0% 50%);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 96px 24px 80px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .hero::after {
+    content: '♔';
+    position: absolute;
+    font-size: 400px;
+    line-height: 1;
+    color: #ffffff03;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -54%);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(240,165,0,.08);
+    border: 1px solid rgba(240,165,0,.25);
+    border-radius: 99px;
+    padding: 5px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    animation: fadeDown .6s ease both;
+  }
+  .hero-badge::before { content: '◆'; font-size: 8px; }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(40px, 8vw, 88px);
+    font-weight: 900;
+    line-height: 1.0;
+    letter-spacing: -.02em;
+    animation: fadeDown .6s .1s ease both;
+  }
+  .hero h1 span { color: var(--amber); }
+
+  .hero-sub {
+    margin-top: 20px;
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 520px;
+    margin-inline: auto;
+    animation: fadeDown .6s .2s ease both;
+  }
+
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 40px;
+    animation: fadeDown .6s .3s ease both;
+  }
+  .hero-meta-item {
+    text-align: center;
+  }
+  .hero-meta-item .num {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--amber);
+    line-height: 1;
+  }
+  .hero-meta-item .label {
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── LAYOUT ── */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin-inline: auto;
+    padding: 0 24px;
+  }
+
+  /* ── SECTION HEADING ── */
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 40px;
+    margin-top: 72px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── PREREQUISITES ── */
+  .prereq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 64px;
+  }
+  .prereq-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: border-color .2s, transform .2s;
+  }
+  .prereq-card:hover {
+    border-color: var(--amber-dim);
+    transform: translateY(-2px);
+  }
+  .prereq-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(240,165,0,.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .prereq-card h4 {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cream);
+    margin-bottom: 3px;
+  }
+  .prereq-card p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── ROADMAP PHASES ── */
+  .phases {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 64px;
+  }
+
+  .phase {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 0 24px;
+    position: relative;
+  }
+
+  /* vertical connector */
+  .phase:not(:last-child) .phase-spine::after {
+    content: '';
+    position: absolute;
+    top: 56px;
+    left: 27px;
+    width: 2px;
+    height: calc(100% - 16px);
+    background: linear-gradient(to bottom, var(--border) 0%, transparent 100%);
+  }
+
+  .phase-spine {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding-bottom: 0;
+  }
+
+  .phase-node {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--muted);
+    flex-shrink: 0;
+    z-index: 1;
+    transition: all .3s;
+    cursor: default;
+  }
+
+  .phase:hover .phase-node {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: rgba(240,165,0,.06);
+    box-shadow: 0 0 0 6px rgba(240,165,0,.06);
+  }
+
+  .phase-body {
+    padding-bottom: 40px;
+    padding-top: 8px;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .phase-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--cream);
+  }
+
+  .phase-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 99px;
+    border: 1px solid;
+  }
+  .tag-setup    { color: var(--blue);  border-color: rgba(91,143,255,.3);  background: rgba(91,143,255,.07); }
+  .tag-render   { color: #c084fc;      border-color: rgba(192,132,252,.3); background: rgba(192,132,252,.07); }
+  .tag-input    { color: var(--green); border-color: rgba(61,186,114,.3);  background: rgba(61,186,114,.07); }
+  .tag-logic    { color: var(--amber); border-color: rgba(240,165,0,.3);   background: rgba(240,165,0,.07); }
+  .tag-ux       { color: var(--red);   border-color: rgba(224,82,82,.3);   background: rgba(224,82,82,.07); }
+
+  .phase-desc {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    max-width: 620px;
+  }
+
+  .phase-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  /* concept row */
+  .concept-row {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .concept-item {
+    flex: 1;
+    min-width: 160px;
+    padding: 14px 18px;
+    border-right: 1px solid var(--border);
+  }
+  .concept-item:last-child { border-right: none; }
+  .concept-item .ci-label {
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .concept-item .ci-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--cream);
+  }
+
+  /* checklist */
+  .checklist {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: #c0bfce;
+  }
+  .check-item::before {
+    content: '◻';
+    color: var(--border);
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: color .2s;
+  }
+  .check-item:hover::before { color: var(--amber); }
+
+  /* code snippet */
+  .code-block {
+    background: #0a0a0c;
+    border-top: 1px solid var(--border);
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+  .code-block .co { color: var(--muted); font-style: italic; }
+  .code-block .kw { color: var(--blue); }
+  .code-block .fn { color: var(--amber); }
+  .code-block .st { color: var(--green); }
+  .code-block .nu { color: #e07b4f; }
+
+  /* ── ARCHITECTURE ── */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 64px;
+  }
+  .arch-cell {
+    background: var(--card);
+    padding: 24px 22px;
+    transition: background .2s;
+  }
+  .arch-cell:hover { background: #1f1f27; }
+  .arch-cell-icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+  .arch-cell h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+  .arch-cell ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .arch-cell ul li {
+    font-size: 12px;
+    color: var(--muted);
+    padding-left: 12px;
+    position: relative;
+  }
+  .arch-cell ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--border);
+    font-size: 10px;
+  }
+
+  /* ── EXTENSIONS TABLE ── */
+  .ext-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 64px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .ext-table thead tr {
+    background: var(--surface);
+  }
+  .ext-table th {
+    text-align: left;
+    padding: 12px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .ext-table td {
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--border);
+    color: #c0bfce;
+    vertical-align: top;
+  }
+  .ext-table tbody tr:last-child td { border-bottom: none; }
+  .ext-table tbody tr { background: var(--card); transition: background .15s; }
+  .ext-table tbody tr:hover { background: #1e1e26; }
+  .ext-table td:first-child { color: var(--cream); font-weight: 500; }
+  .diff {
+    display: inline-flex;
+    gap: 2px;
+    font-size: 13px;
+  }
+  .diff .s { color: var(--amber); }
+  .diff .e { color: var(--border); }
+
+  /* ── COMPILE BOX ── */
+  .compile-box {
+    background: #09090b;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 80px;
+  }
+  .compile-box-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .compile-box-header span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #e05252; }
+  .dot-y { background: #e0a534; }
+  .dot-g { background: var(--green); }
+  .compile-box pre {
+    padding: 18px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 2;
+    overflow-x: auto;
+  }
+  .compile-box .prompt { color: var(--amber); user-select: none; }
+  .compile-box .cmd { color: var(--cream); }
+  .compile-box .comment { color: var(--muted); font-style: italic; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    padding: 32px 24px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: .06em;
+  }
+  footer span { color: var(--amber); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<header class="hero">
+  <div class="hero-badge">Learning Roadmap · C + Raylib</div>
+  <h1>Chess<br><span>from Scratch</span></h1>
+  <p class="hero-sub">A structured, layer-by-layer guide to building a fully playable chess game in pure C with Raylib — no assets, no engine.</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item">
+      <span class="num">7</span>
+      <span class="label">Phases</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="num">1</span>
+      <span class="label">Source file</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="num">~500</span>
+      <span class="label">Lines of C</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="num">8</span>
+      <span class="label">Extensions</span>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ── PREREQUISITES ── -->
+  <p class="section-title">Before you start</p>
+  <div class="prereq-grid">
+    <div class="prereq-card">
+      <div class="prereq-icon">🔣</div>
+      <div>
+        <h4>C Fundamentals</h4>
+        <p>Pointers, arrays, structs, enums, switch statements</p>
+      </div>
+    </div>
+    <div class="prereq-card">
+      <div class="prereq-icon">📦</div>
+      <div>
+        <h4>Raylib Installed</h4>
+        <p><code style="font-family:monospace;font-size:11px;color:var(--amber)">apt install libraylib-dev</code> or brew/Windows installer</p>
+      </div>
+    </div>
+    <div class="prereq-card">
+      <div class="prereq-icon">🖥</div>
+      <div>
+        <h4>GCC / Clang</h4>
+        <p>Any C99-capable compiler will work fine</p>
+      </div>
+    </div>
+    <div class="prereq-card">
+      <div class="prereq-icon">♟</div>
+      <div>
+        <h4>Chess Rules</h4>
+        <p>Know how each piece moves — you'll implement them all</p>
+      </div>
+    </div>
+    <div class="prereq-card">
+      <div class="prereq-icon">🔡</div>
+      <div>
+        <h4>Unicode Font</h4>
+        <p>DejaVu Sans, Segoe UI Symbol, or any font with U+2654–265F</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PHASES ── -->
+  <p class="section-title">Learning Phases</p>
+  <div class="phases">
+
+    <!-- PHASE 1 -->
+    <div class="phase">
+      <div class="phase-spine">
+        <div class="phase-node">1</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-header">
+          <h3>Window & Board</h3>
+          <span class="phase-tag tag-setup">Setup</span>
+          <span class="phase-tag tag-render">Render</span>
+        </div>
+        <p class="phase-desc">Bootstrap a Raylib window and draw the classic 8×8 alternating grid with coordinate labels. Nail the pixel ↔ grid coordinate system early — everything else builds on it.</p>
+        <div class="phase-card">
+          <div class="concept-row">
+            <div class="concept-item">
+              <div class="ci-label">Key formula</div>
+              <div class="ci-value">CELL_SIZE = 640 / 8</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">Color trick</div>
+              <div class="ci-value">(row + col) % 2</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">Raylib loop</div>
+              <div class="ci-value">Init → Update → Draw</div>
+            </div>
+          </div>
+          <div class="checklist">
+            <div class="check-item">Create window 640×680 px (extra 40px for status bar)</div>
+            <div class="check-item">Loop over rows/cols, alternate LIGHT_COLOR / DARK_COLOR</div>
+            <div class="check-item">Draw column letters (a–h) and row numbers (8–1)</div>
+            <div class="check-item">Lock to 60 FPS with <code style="font-family:monospace;font-size:11px;color:var(--amber)">SetTargetFPS</code></div>
+          </div>
+          <div class="code-block">
+<span class="co">// pixel origin of cell (row, col)</span>
+<span class="kw">int</span> x = col * CELL_SIZE,  y = row * CELL_SIZE;
+<span class="fn">DrawRectangle</span>(x, y, CELL_SIZE, CELL_SIZE, cellColor);
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 2 -->
+    <div class="phase">
+      <div class="phase-spine">
+        <div class="phase-node">2</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-header">
+          <h3>Piece Data & Rendering</h3>
+          <span class="phase-tag tag-render">Render</span>
+        </div>
+        <p class="phase-desc">Represent the board as <code style="font-family:monospace;font-size:12px;color:var(--amber)">int board[8][8]</code> where positive = White, negative = Black. Render pieces using Unicode chess symbols — zero assets required.</p>
+        <div class="phase-card">
+          <div class="concept-row">
+            <div class="concept-item">
+              <div class="ci-label">White pieces</div>
+              <div class="ci-value">+1 … +6</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">Black pieces</div>
+              <div class="ci-value">−1 … −6</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">Array index</div>
+              <div class="ci-value">piece + 6</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">Symbol range</div>
+              <div class="ci-value">U+2654–265F</div>
+            </div>
+          </div>
+          <div class="checklist">
+            <div class="check-item">Define PAWN=1, KNIGHT=2 … KING=6 (negated for black)</div>
+            <div class="check-item">Initialise <code style="font-family:monospace;font-size:11px;color:var(--amber)">board[8][8]</code> with standard chess starting position</div>
+            <div class="check-item">Load a TTF font that includes Unicode chess glyphs</div>
+            <div class="check-item">Center each symbol in its cell with <code style="font-family:monospace;font-size:11px;color:var(--amber)">MeasureTextEx</code></div>
+            <div class="check-item">Draw a 2-px shadow offset for depth</div>
+          </div>
+          <div class="code-block">
+<span class="co">// symbols indexed by (piece + 6), range 0–12</span>
+<span class="kw">const char</span>* PIECE_SYMBOLS[<span class="nu">13</span>] = {
+  <span class="st">"♚"</span>,<span class="st">"♛"</span>,<span class="st">"♜"</span>,<span class="st">"♝"</span>,<span class="st">"♞"</span>,<span class="st">"♟"</span>,<span class="st">" "</span>,<span class="st">"♙"</span>,<span class="st">"♘"</span>,<span class="st">"♗"</span>,<span class="st">"♖"</span>,<span class="st">"♕"</span>,<span class="st">"♔"</span>
+};
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 3 -->
+    <div class="phase">
+      <div class="phase-spine">
+        <div class="phase-node">3</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-header">
+          <h3>Mouse Input & Selection</h3>
+          <span class="phase-tag tag-input">Input</span>
+        </div>
+        <p class="phase-desc">Convert mouse pixel coordinates into board cells, then implement a two-click flow: first click selects a piece, second click either moves or re-selects.</p>
+        <div class="phase-card">
+          <div class="concept-row">
+            <div class="concept-item">
+              <div class="ci-label">Pixel → cell</div>
+              <div class="ci-value">x / CELL_SIZE</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">States</div>
+              <div class="ci-value">idle / selected</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">Turn flag</div>
+              <div class="ci-value">currentTurn ±1</div>
+            </div>
+          </div>
+          <div class="checklist">
+            <div class="check-item">Track <code style="font-family:monospace;font-size:11px;color:var(--amber)">selectedRow / selectedCol</code> (−1 = nothing selected)</div>
+            <div class="check-item">Only allow selecting pieces belonging to <code style="font-family:monospace;font-size:11px;color:var(--amber)">currentTurn</code></div>
+            <div class="check-item">Click same cell again → deselect</div>
+            <div class="check-item">Click another friendly piece → switch selection</div>
+            <div class="check-item">Highlight selected cell in semi-transparent green</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 4 -->
+    <div class="phase">
+      <div class="phase-spine">
+        <div class="phase-node">4</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-header">
+          <h3>Move Validation</h3>
+          <span class="phase-tag tag-logic">Logic</span>
+        </div>
+        <p class="phase-desc">The engine of the game. Each piece type has its own movement predicate. Sliding pieces (Rook, Bishop, Queen) share a path-clearance helper.</p>
+        <div class="phase-card">
+          <div class="concept-row">
+            <div class="concept-item">
+              <div class="ci-label">Pawn special</div>
+              <div class="ci-value">2-sq start, diag capture</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">Knight</div>
+              <div class="ci-value">|dr|+|dc| = 3, ≠ straight</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">Sliding</div>
+              <div class="ci-value">IsClearPath() helper</div>
+            </div>
+          </div>
+          <div class="checklist">
+            <div class="check-item"><strong style="color:var(--cream)">Pawn:</strong> forward 1 (or 2 from start row), captures diagonally only</div>
+            <div class="check-item"><strong style="color:var(--cream)">Knight:</strong> (|dr|==2 && |dc|==1) || (|dr|==1 && |dc|==2)</div>
+            <div class="check-item"><strong style="color:var(--cream)">Bishop:</strong> |dr| == |dc|, clear diagonal path</div>
+            <div class="check-item"><strong style="color:var(--cream)">Rook:</strong> same row or same col, clear straight path</div>
+            <div class="check-item"><strong style="color:var(--cream)">Queen:</strong> Bishop OR Rook rules</div>
+            <div class="check-item"><strong style="color:var(--cream)">King:</strong> |dr|≤1 && |dc|≤1, never friendly-occupied</div>
+          </div>
+          <div class="code-block">
+<span class="kw">bool</span> <span class="fn">IsClearPath</span>(<span class="kw">int</span> fr, <span class="kw">int</span> fc, <span class="kw">int</span> tr, <span class="kw">int</span> tc) {
+  <span class="kw">int</span> dr = (tr&gt;fr)?<span class="nu">1</span>:(tr&lt;fr)?<span class="nu">-1</span>:<span class="nu">0</span>;
+  <span class="kw">int</span> dc = (tc&gt;fc)?<span class="nu">1</span>:(tc&lt;fc)?<span class="nu">-1</span>:<span class="nu">0</span>;
+  <span class="co">// walk squares between src and dst</span>
+  <span class="kw">for</span> (<span class="kw">int</span> r=fr+dr,c=fc+dc; r!=tr||c!=tc; r+=dr,c+=dc)
+    <span class="kw">if</span> (board[r][c] != EMPTY) <span class="kw">return false</span>;
+  <span class="kw">return true</span>;
+}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 5 -->
+    <div class="phase">
+      <div class="phase-spine">
+        <div class="phase-node">5</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-header">
+          <h3>Legal Move Highlights</h3>
+          <span class="phase-tag tag-ux">UX</span>
+          <span class="phase-tag tag-render">Render</span>
+        </div>
+        <p class="phase-desc">When a piece is selected, iterate every cell and highlight those that pass <code style="font-family:monospace;font-size:12px;color:var(--amber)">IsLegalMove()</code>. Dots for empty squares, rings for capturable enemies.</p>
+        <div class="phase-card">
+          <div class="checklist">
+            <div class="check-item">Loop all 64 squares, call <code style="font-family:monospace;font-size:11px;color:var(--amber)">IsLegalMove(sel, target)</code></div>
+            <div class="check-item">Empty target → small filled circle (radius ≈ 18% cell)</div>
+            <div class="check-item">Enemy target → hollow ring (radius ≈ 38–46% cell) in red</div>
+            <div class="check-item">King in check → full red tint on king's cell</div>
+          </div>
+          <div class="code-block">
+<span class="co">// empty square hint</span>
+<span class="fn">DrawCircle</span>(cx, cy, CELL_SIZE*<span class="nu">0.18f</span>, COLOR_MOVE_DOT);
+<span class="co">// capture ring</span>
+<span class="fn">DrawRing</span>((Vector2){cx,cy}, CELL_SIZE*<span class="nu">0.38f</span>,
+           CELL_SIZE*<span class="nu">0.46f</span>, <span class="nu">0</span>, <span class="nu">360</span>, <span class="nu">20</span>, COLOR_CAPTURE);
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 6 -->
+    <div class="phase">
+      <div class="phase-spine">
+        <div class="phase-node">6</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-header">
+          <h3>Check & Checkmate</h3>
+          <span class="phase-tag tag-logic">Logic</span>
+        </div>
+        <p class="phase-desc">A move is only truly legal if it doesn't leave your own king in check. Simulate the move, test, then undo. Build on that to detect checkmate and stalemate.</p>
+        <div class="phase-card">
+          <div class="concept-row">
+            <div class="concept-item">
+              <div class="ci-label">IsInCheck</div>
+              <div class="ci-value">any enemy attacks King?</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">IsLegalMove</div>
+              <div class="ci-value">valid + !selfCheck</div>
+            </div>
+            <div class="concept-item">
+              <div class="ci-label">Checkmate</div>
+              <div class="ci-value">inCheck && !anyLegal</div>
+            </div>
+          </div>
+          <div class="checklist">
+            <div class="check-item"><code style="font-family:monospace;font-size:11px;color:var(--amber)">FindKing(color)</code> — scan board for King piece</div>
+            <div class="check-item"><code style="font-family:monospace;font-size:11px;color:var(--amber)">IsInCheck(color)</code> — any enemy <code>IsValidMove → King</code>?</div>
+            <div class="check-item">Simulate move, run IsInCheck, restore board (3 lines)</div>
+            <div class="check-item"><code style="font-family:monospace;font-size:11px;color:var(--amber)">HasAnyLegalMove(color)</code> — brute-force all 64×64 pairs</div>
+            <div class="check-item">Checkmate = inCheck + no legal moves; Stalemate = opposite</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 7 -->
+    <div class="phase">
+      <div class="phase-spine">
+        <div class="phase-node">7</div>
+      </div>
+      <div class="phase-body">
+        <div class="phase-header">
+          <h3>Promotion, Status Bar & Polish</h3>
+          <span class="phase-tag tag-ux">UX</span>
+          <span class="phase-tag tag-logic">Logic</span>
+        </div>
+        <p class="phase-desc">Tie everything together: auto-promote pawns to Queens, draw a HUD showing the active turn and check/win state, and wire up an <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:11px">R</kbd> restart key.</p>
+        <div class="phase-card">
+          <div class="checklist">
+            <div class="check-item">After any pawn move, check row 0 (White) or row 7 (Black) → auto-promote to Queen</div>
+            <div class="check-item">Status bar: 40px panel below board showing whose turn it is</div>
+            <div class="check-item">Display "CHECK!" in red, "X WINS" or "STALEMATE" in gold</div>
+            <div class="check-item">Game-over overlay: dim board, centred message, R-to-restart hint</div>
+            <div class="check-item"><code style="font-family:monospace;font-size:11px;color:var(--amber)">ResetBoard()</code> — memcpy initial layout, clear all state</div>
+          </div>
+          <div class="code-block">
+<span class="co">// auto-promote on reaching back rank</span>
+<span class="kw">if</span> (board[cr][cc] == W_PAWN && cr == <span class="nu">0</span>) board[cr][cc] = W_QUEEN;
+<span class="kw">if</span> (board[cr][cc] == B_PAWN && cr == <span class="nu">7</span>) board[cr][cc] = B_QUEEN;
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /phases -->
+
+  <!-- ── ARCHITECTURE ── -->
+  <p class="section-title">File Architecture — chess.c</p>
+  <div class="arch-grid">
+    <div class="arch-cell">
+      <div class="arch-cell-icon">🔢</div>
+      <h4>Constants</h4>
+      <ul>
+        <li>SCREEN_W / BOARD_SIZE</li>
+        <li>CELL_SIZE macro</li>
+        <li>Color definitions</li>
+        <li>Piece value macros</li>
+      </ul>
+    </div>
+    <div class="arch-cell">
+      <div class="arch-cell-icon">🗃️</div>
+      <h4>Game State</h4>
+      <ul>
+        <li>board[8][8]</li>
+        <li>selectedRow/Col</li>
+        <li>currentTurn</li>
+        <li>gameOver + statusMsg</li>
+      </ul>
+    </div>
+    <div class="arch-cell">
+      <div class="arch-cell-icon">✅</div>
+      <h4>Move Validation</h4>
+      <ul>
+        <li>IsValidMove()</li>
+        <li>IsClearPath()</li>
+        <li>IsInCheck()</li>
+        <li>IsLegalMove()</li>
+        <li>HasAnyLegalMove()</li>
+      </ul>
+    </div>
+    <div class="arch-cell">
+      <div class="arch-cell-icon">🖱️</div>
+      <h4>Input Handling</h4>
+      <ul>
+        <li>HandleInput()</li>
+        <li>pixel → cell math</li>
+        <li>select / move / reset</li>
+      </ul>
+    </div>
+    <div class="arch-cell">
+      <div class="arch-cell-icon">🎨</div>
+      <h4>Rendering</h4>
+      <ul>
+        <li>DrawBoard()</li>
+        <li>DrawHighlights()</li>
+        <li>DrawPieces(font)</li>
+        <li>DrawStatusBar()</li>
+      </ul>
+    </div>
+    <div class="arch-cell">
+      <div class="arch-cell-icon">▶️</div>
+      <h4>Entry Point</h4>
+      <ul>
+        <li>main()</li>
+        <li>Font loading + fallback</li>
+        <li>ResetBoard()</li>
+        <li>Game loop</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── COMPILE ── -->
+  <p class="section-title">Compile & Run</p>
+  <div class="compile-box">
+    <div class="compile-box-header">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+      <span>terminal</span>
+    </div>
+    <pre>
+<span class="prompt">$ </span><span class="cmd">gcc chess.c -o chess -lraylib -lm</span>
+<span class="comment"># macOS (brew raylib)</span>
+<span class="prompt">$ </span><span class="cmd">gcc chess.c -o chess $(pkg-config --libs --cflags raylib)</span>
+<span class="comment"># Windows (MinGW + raylib SDK)</span>
+<span class="prompt">> </span><span class="cmd">gcc chess.c -o chess.exe -lraylib -lopengl32 -lgdi32 -lwinmm</span>
+<span class="prompt">$ </span><span class="cmd">./chess</span></pre>
+  </div>
+
+  <!-- ── EXTENSIONS ── -->
+  <p class="section-title">What to Build Next</p>
+  <table class="ext-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Difficulty</th>
+        <th>Key concept</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>En Passant</td>
+        <td><div class="diff"><span class="s">★★</span><span class="e">★★★</span></div></td>
+        <td>Track last pawn double-step; allow capture on the passed square next turn only</td>
+      </tr>
+      <tr>
+        <td>Castling</td>
+        <td><div class="diff"><span class="s">★★</span><span class="e">★★★</span></div></td>
+        <td>hasMoved[King/Rook] flags; verify no check through transit squares</td>
+      </tr>
+      <tr>
+        <td>Promotion Menu</td>
+        <td><div class="diff"><span class="s">★★</span><span class="e">★★★</span></div></td>
+        <td>Pause game loop, draw 4-option overlay, wait for selection click</td>
+      </tr>
+      <tr>
+        <td>Move History + Undo</td>
+        <td><div class="diff"><span class="s">★★★</span><span class="e">★★</span></div></td>
+        <td>Push Move structs onto a stack; pop to restore board snapshot</td>
+      </tr>
+      <tr>
+        <td>Minimax AI</td>
+        <td><div class="diff"><span class="s">★★★★</span><span class="e">★</span></div></td>
+        <td>Recursive search + alpha-beta pruning + simple material evaluation</td>
+      </tr>
+      <tr>
+        <td>Piece Textures</td>
+        <td><div class="diff"><span class="s">★★</span><span class="e">★★★</span></div></td>
+        <td>LoadTexture() PNG sprite sheet; replace DrawTextEx with DrawTextureEx</td>
+      </tr>
+      <tr>
+        <td>Move Animations</td>
+        <td><div class="diff"><span class="s">★★★</span><span class="e">★★</span></div></td>
+        <td>Store src/dst + progress t ∈ [0,1]; Lerp position each frame</td>
+      </tr>
+      <tr>
+        <td>PGN Export</td>
+        <td><div class="diff"><span class="s">★★★</span><span class="e">★★</span></div></td>
+        <td>Encode moves in Algebraic Notation; write to file with fopen/fprintf</td>
+      </tr>
+    </tbody>
+  </table>
+
+</main>
+
+<footer>
+  <span>♔</span> Chess in C + Raylib — Learning Roadmap &nbsp;·&nbsp; Build it. Play it. Break it.
+</footer>
+
+</body>
+</html>
