@@ -7,7 +7,7 @@
 #define BOARD_SIZE 8
 #define CELL_SIZE (SCREEN_HEIGHT / BOARD_SIZE)
 
-//color of board
+//color of Board
 #define LIGHT_COLOR CLITERAL(RAYWHITE)
 #define DARK_COLOR CLITERAL(DARKGRAY)
 
@@ -35,7 +35,7 @@ typedef enum {
     BLACK_PAWN = -1, BLACK_KNIGHT = -2, BLACK_BISHOP = -3, BLACK_ROOK = -4, BLACK_QUEEN = -5, BLACK_KING = -6,
 } Piece;
 
-// starter board
+// starter Board
 int Board[BOARD_SIZE][BOARD_SIZE] = {
     { BLACK_ROOK, BLACK_KNIGHT, BLACK_BISHOP, BLACK_QUEEN, BLACK_KING, BLACK_BISHOP, BLACK_KNIGHT, BLACK_ROOK },
     { BLACK_PAWN, BLACK_PAWN,   BLACK_PAWN,   BLACK_PAWN,  BLACK_PAWN, BLACK_PAWN,   BLACK_PAWN,   BLACK_PAWN },
@@ -68,7 +68,7 @@ void HandleMouseInput(void) {
     int clickCol = (int)(mouse.x / CELL_SIZE);
     int clickRow = (int)(mouse.y / CELL_SIZE);
 
-    // Kiểm tra trong board
+    // Kiểm tra trong Board
     if (clickCol < 0 || clickCol >= BOARD_SIZE ||
         clickRow < 0 || clickRow >= BOARD_SIZE) return;
 
@@ -200,6 +200,116 @@ void DrawPieces(Font font){
     };
 };
 
+bool InBounds(int row, int col){
+    return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+};
+
+bool IsEmpty(int row, int col) {
+    return Board[row][col] == EMPTY;
+}
+
+int PieceColor(int piece) {
+    if (piece > 0) return 1;   
+    if (piece < 0) return -1;  
+    return 0;                   
+}
+
+bool IsValidPawnMove(int fromRow, int fromCol, int toRow, int toCol) {
+    int piece = Board[fromRow][fromCol];
+    int dir = (piece > 0) ? -1 : 1;   // Trắng đi lên (row giảm), Đen đi xuống
+    int startRow = (piece > 0) ? 6 : 1; // Hàng xuất phát để đi 2 ô
+
+    int dr = toRow - fromRow;
+    int dc = toCol - fromCol;
+
+    // Tiến thẳng 1 ô
+    if (dc == 0 && dr == dir && IsEmpty(toRow, toCol)) return true;
+
+    // Tiến thẳng 2 ô từ vị trí ban đầu
+    if (dc == 0 && dr == 2 * dir && fromRow == startRow &&
+        IsEmpty(fromRow + dir, fromCol) && IsEmpty(toRow, toCol)) return true;
+
+    // Ăn chéo
+    if (abs(dc) == 1 && dr == dir &&
+        !IsEmpty(toRow, toCol) &&
+        PieceColor(Board[toRow][toCol]) != PieceColor(piece)) return true;
+
+    return false;
+}
+
+// === VALIDATE MOVE: Knight ===
+bool IsValidKnightMove(int fromRow, int fromCol, int toRow, int toCol) {
+    int dr = abs(toRow - fromRow);
+    int dc = abs(toCol - fromCol);
+    // Chữ L: (2,1) hoặc (1,2)
+    return (dr == 2 && dc == 1) || (dr == 1 && dc == 2);
+}
+
+// === VALIDATE MOVE: Sliding pieces (Rook, Bishop, Queen) ===
+// Kiểm tra xem đường đi có bị chặn không
+bool IsClearPath(int fromRow, int fromCol, int toRow, int toCol) {
+    int dr = (toRow > fromRow) ? 1 : (toRow < fromRow) ? -1 : 0;
+    int dc = (toCol > fromCol) ? 1 : (toCol < fromCol) ? -1 : 0;
+
+    int r = fromRow + dr;
+    int c = fromCol + dc;
+
+    // Bước dọc đường đi, kiểm tra mỗi ô trung gian
+    while (r != toRow || c != toCol) {
+        if (!IsEmpty(r, c)) return false;  // Bị chặn!
+        r += dr;
+        c += dc;
+    }
+    return true;
+}
+
+bool IsValidRookMove(int fromRow, int fromCol, int toRow, int toCol) {
+    // Chỉ đi ngang hoặc dọc
+    if (fromRow != toRow && fromCol != toCol) return false;
+    return IsClearPath(fromRow, fromCol, toRow, toCol);
+}
+
+bool IsValidBishopMove(int fromRow, int fromCol, int toRow, int toCol) {
+    // Chỉ đi chéo: |dr| == |dc|
+    if (abs(toRow - fromRow) != abs(toCol - fromCol)) return false;
+    return IsClearPath(fromRow, fromCol, toRow, toCol);
+}
+
+bool IsValidQueenMove(int fromRow, int fromCol, int toRow, int toCol) {
+    // Queen = Rook + Bishop
+    return IsValidRookMove(fromRow, fromCol, toRow, toCol) ||
+           IsValidBishopMove(fromRow, fromCol, toRow, toCol);
+}
+
+bool IsValidKingMove(int fromRow, int fromCol, int toRow, int toCol) {
+    int dr = abs(toRow - fromRow);
+    int dc = abs(toCol - fromCol);
+    // Chỉ 1 ô bất kỳ hướng
+    return dr <= 1 && dc <= 1 && (dr + dc > 0);
+}
+
+// === MASTER VALIDATE: Tổng hợp tất cả ===
+bool IsValidMove(int fromRow, int fromCol, int toRow, int toCol) {
+    if (!InBounds(toRow, toCol)) return false;
+
+    int piece = Board[fromRow][fromCol];
+    int targetPiece = Board[toRow][toCol];
+
+    // Không thể đi vào ô có quân cùng màu
+    if (PieceColor(targetPiece) == PieceColor(piece)) return false;
+
+    int absPiece = abs(piece);
+
+    switch (absPiece) {
+        case 1: return IsValidPawnMove(fromRow, fromCol, toRow, toCol);
+        case 2: return IsValidKnightMove(fromRow, fromCol, toRow, toCol);
+        case 3: return IsValidBishopMove(fromRow, fromCol, toRow, toCol);
+        case 4: return IsValidRookMove(fromRow, fromCol, toRow, toCol);
+        case 5: return IsValidQueenMove(fromRow, fromCol, toRow, toCol);
+        case 6: return IsValidKingMove(fromRow, fromCol, toRow, toCol);
+        default: return false;
+    }
+}
 
 int main(void) {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess");
